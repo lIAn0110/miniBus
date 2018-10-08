@@ -1,0 +1,120 @@
+<template>
+	<view class="map">
+		<!--绑定点击事件-->
+		<view class="btn" bindtap="driving">路线规划</view>
+		<!--地图容器-->
+		<map
+		id="myMap"
+		class="my-map"
+		longitude="118.199057" latitude="28.451060"
+		scale='15'
+		polyline="{{polyline}}"
+		></map>
+	</view>
+</template>
+
+<script>
+// 引入SDK核心类
+var QQMapWX = require('../../libs/qqmap/qqmap-wx-jssdk.js');
+var qqmapsdk;
+
+var app = getApp()
+const { fly, regeneratorRuntime } = app.global
+
+
+Page({
+	onLoad(){
+		// 实例化API核心类
+		qqmapsdk = new QQMapWX({
+			key: 'MEHBZ-J2EHS-MMLOJ-6EEWV-L5KC3-DVBZN'
+		});
+	},
+	onReady: function() {
+		console.log('Page onReady...')
+	},
+	data: {
+
+	},
+	//事件回调函数
+	driving:function(){
+		var _this = this;
+    //网络请求设置
+    var opt={
+      //WebService请求地址，from为起点坐标，to为终点坐标，waypoints为一次经过的点，开发key为必填
+      url:'https://apis.map.qq.com/ws/direction/v1/driving/?from=28.451060,118.199057&to=28.460376,117.975272&waypoints=28.438318,118.169977;28.399698,118.115525;28.447359,117.969599&key=MEHBZ-J2EHS-MMLOJ-6EEWV-L5KC3-DVBZN',
+      method:'GET',
+      dataType:'json',
+      //请求成功回调
+      success:function(res){
+      	var ret=res.data
+        if(ret.status!=0)return; //服务异常处理
+        var coors = ret.result.routes[0].polyline,pl=[];
+        //坐标解压（返回的点串坐标，通过前向差分进行压缩）
+        var kr = 1000000;
+        for (var i = 2; i < coors.length; i++) {
+        	coors[i] = Number(coors[i - 2]) + Number(coors[i]) / kr;
+        }
+        //将解压后的坐标放入点串数组pl中
+        for (var i = 0; i < coors.length;i+=2){
+        	pl.push({ latitude: coors[i], longitude:coors[i+1]})
+        }
+        //设置polyline属性，将路线显示出来
+        _this.setData({ 
+        	polyline:[{
+        		points:pl,
+        		color: '#FF0000DD',
+        		width:2
+        	}]
+        })
+      }
+    };
+    wx.request(opt);
+  },
+  bMapTransQQMap(lng, lat) {
+  	 let x_pi = 3.14159265358979324 * 3000.0 / 180.0;
+  	 let x = lng - 0.0065;
+  	 let y = lat - 0.006;
+  	 let z = Math.sqrt(x * x + y * y) - 0.00002 * Math.sin(y * x_pi);
+  	 let theta = Math.atan2(y, x) - 0.000003 * Math.cos(x * x_pi);
+  	 let longitude = z * Math.cos(theta);
+  	 let latitude = z * Math.sin(theta);
+  	    
+  	return {
+  		longitude: longitude,
+  		latitude: latitude
+  	}   
+  },
+  navigatorTo(e){
+  	let url = e.currentTarget.dataset.url
+  	wx.navigateTo({
+  		url: url
+  	})
+  },
+  switchTabTo(e){
+  	let url = e.currentTarget.dataset.url
+  	wx.switchTab({
+  		url: url
+  	})
+  }
+})
+</script>
+
+<style lang="less">
+@import 'style/base.less';
+
+.map{
+	width: 100%;
+	height: 100%;
+	.btn{
+		height: 100rpx;
+		line-height: 100rpx;
+		text-align: center;
+		color: #fff;
+		background: #000;
+	}
+	.my-map{
+		width: 100%;
+		height: calc(100% - 60rpx);
+	}
+}
+</style>

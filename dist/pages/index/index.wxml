@@ -1,0 +1,4 @@
+
+<view class="index">
+	<view wx:for="{{busLineConfig[currentBusLine].sites}}" wx:key="{{index}}" class="site">{{item}}</view>
+</view>

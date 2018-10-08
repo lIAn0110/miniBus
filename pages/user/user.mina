@@ -1,0 +1,169 @@
+<template>
+	<view class="rec">
+		<view class="flex-style">
+			<view class="flex-item active" bindtouchstart="goToCar">驾车</view>
+			<view class="flex-item" bindtouchstart="goToWalk">步行</view>
+			<view class="flex-item" bindtouchstart="goToBus">公交</view>
+			<view class="flex-item" bindtouchstart="goToRide">骑行</view>
+		</view>
+		<view class="map_box">
+			<!-- 原生的地图组件，markers: 起点和终点； polyline: 数组，经纬度对象 -->
+			<map id="navi_map" longitude="{{busLineConfig[currentBusLine].pois[0].longitude}}" latitude="{{busLineConfig[currentBusLine].pois[0].latitude}}" scale="13" markers="{{markers}}" polyline="{{polyline}}"></map>
+		</view>
+	</view>
+</template>
+
+
+<script>
+import { busLineConfig, resBaseUrl, queryBusStr } from '../../config'
+const amapFile = require('../../libs/map/amap-wx.js')
+var myAmap = null;
+Page({
+	onLoad(){
+		this.setData({
+			busLineConfig
+		})
+		myAmap = new amapFile.AMapWX({
+			key: '89000f1de7d62a446cc0652aa21715dd'
+		});
+	},
+	onShow(){
+		this.getPolyline()
+	},
+	data: {
+		// 线路配置信息
+		busLineConfig: {},
+		// 当前线路
+		currentBusLine: 'gf2sr',
+		markers: [{
+			iconPath: "../../static/img/map/map.png",
+			id: 0,
+			latitude: 39.989643,
+			longitude: 116.481028,
+			width: 32,
+			height: 32
+		},{
+			iconPath: "../../static/img/map/map.png",
+			id: 0,
+			latitude: 39.90816,
+			longitude: 116.434446,
+			width: 32,
+			height: 32
+		}],
+		polyline: []
+	},
+	getPolyline(){
+		// this.setData({
+		// 	// latitude: busLineConfig[this.data.currentBusLine].pois[0].lon,
+		// 	// longitude: busLineConfig[this.data.currentBusLine].pois[0].lat,
+		// 	polyline: [{
+		// 		points: busLineConfig[this.data.currentBusLine].pois,
+		// 		color: "#0091ff",
+		// 		width: 6
+		// 	}]
+		// })
+		let that = this
+		let pois = busLineConfig[this.data.currentBusLine].pois
+		let startPoi = pois[0].longitude+','+pois[0].latitude
+		let endPoi = pois[pois.length-1].longitude+','+pois[pois.length-1].latitude
+		myAmap.getDrivingRoute({
+			// origin: '116.481028,39.989643',
+			// destination: '116.434446,39.90816',
+			origin: startPoi,
+			destination: endPoi,
+			success: function(data){
+				console.log(data)
+				var points = [];
+				if(data.paths && data.paths[0] && data.paths[0].steps){
+					var steps = data.paths[0].steps;
+					for(var i = 0; i < steps.length; i++){
+						var poLen = steps[i].polyline.split(';');
+						for(var j = 0;j < poLen.length; j++){
+							points.push({
+								longitude: parseFloat(poLen[j].split(',')[0]),
+								latitude: parseFloat(poLen[j].split(',')[1])
+							})
+						} 
+					}
+				}
+				that.setData({
+					polyline: [{
+						points: points,
+						color: "#0091ff",
+						width: 6
+					}]
+				});
+				if(data.paths[0] && data.paths[0].distance){
+					that.setData({
+						distance: data.paths[0].distance + '米'
+					});
+				}
+				if(data.taxi_cost){
+					that.setData({
+						cost: '打车约' + parseInt(data.taxi_cost) + '元'
+					});
+				}
+
+			},
+			fail: function(info){
+
+			}
+		})
+	},
+	navigatorTo(e){
+		let url = e.currentTarget.dataset.url
+		wx.navigateTo({
+			url: url
+		})
+	},
+})
+</script>
+
+<style lang="less">
+@import 'style/base.less';
+
+.flex-style{
+	display: flex;
+}
+.flex-item{
+	height: 35px; 
+	line-height: 35px;
+	text-align: center;
+	flex: 1
+}
+.flex-item.active{
+	color:#0091ff;
+}
+.map_box{
+	position:absolute;
+	top: 35px;
+	bottom: 0px;
+	left: 0px;
+	right: 0px;
+}
+#navi_map{
+	width: 100%;
+	height: 100%;
+}
+.text_box{
+	position:absolute;
+	height: 90px;
+	bottom: 0px;
+	left: 0px;
+	right: 0px;
+}
+.text_box .text{
+	margin: 15px;
+}
+.detail_button{
+	position:absolute;
+	bottom: 30px;
+	right: 10px;
+	padding: 3px 5px;
+	color: #fff;
+	background: #0091ff;
+	width:50px;
+	text-align:center;
+	border-radius:5px;
+}
+</style>

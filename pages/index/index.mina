@@ -1,0 +1,72 @@
+<template>
+	<view class="index">
+		<view wx:for="{{busLineConfig[currentBusLine].sites}}" wx:key="{{index}}" class="site">{{item}}</view>
+	</view>
+</template>
+
+<script>
+import qs from 'qs'
+import { busLineConfig, resBaseUrl, queryBusStr } from '../../config'
+var app = getApp()
+const {  fly, regeneratorRuntime } = app.global
+
+// 能不能使用
+Page({
+	onLoad(){
+		console.log(busLineConfig)
+		// 赋值，存在data中，才可以在循环中使用
+		this.setData({
+			busLineConfig
+		})
+	},
+	onShow(){
+		this.getBusData()
+	},
+	data: {
+		// 线路配置信息
+		busLineConfig: {},
+		// 当前线路
+		currentBusLine: 'gf2hcz',
+		// 实时公交数据
+		busData: []
+	},
+	getBusData(){
+		// 请求的参数，线路的id
+		let params = {
+			lineId: busLineConfig[this.data.currentBusLine].lineId
+		}
+		fly.post(resBaseUrl + queryBusStr, qs.stringify(params))
+		.then((res) => {
+			if(res.data.returnCode === 1){
+				this.setData({
+					busData: this.formatBusData(res.data.returnData)
+				})
+				console.log(this.formatBusData(res.data.returnData))
+			}
+		})
+		.catch((err) => {
+			console.log(err)
+		})
+	},
+	formatBusData(data){
+		for(let item of data){
+			item.sendTimeText = new Date(parseInt(item.sendTime+'000'))
+			item.updateTimeText = new Date(parseInt(item.locUpdateTime+'000'))
+			item.arrive = JSON.parse(item.ports)
+		}
+		return data
+	}
+})
+</script>
+
+<style lang="less">
+@import 'style/base.less';
+
+.index{
+	height: 100%;
+	background: #eee;
+	.site{
+		font-size: 26rpx;
+	}
+}
+</style>

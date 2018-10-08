@@ -1,0 +1,13 @@
+
+<view class="map">
+	<!--绑定点击事件-->
+	<view class="btn" bindtap="driving">路线规划</view>
+	<!--地图容器-->
+	<map
+	id="myMap"
+	class="my-map"
+	longitude="118.199057" latitude="28.451060"
+	scale='15'
+	polyline="{{polyline}}"
+	></map>
+</view>
